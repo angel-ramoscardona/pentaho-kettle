@@ -854,6 +854,20 @@ public class PluginRegistry {
     }
   }
 
+  public <T> T getClass( Class<? extends PluginTypeInterface> pluginType, String pluginId, String className ) throws KettlePluginException {
+    Class<? extends PluginTypeInterface> pluginTypeInterface = null;
+    for ( Class<? extends PluginTypeInterface> potentialPluginTypeInterface : getPluginTypes() ) {
+      if ( pluginType.getCanonicalName().equals( potentialPluginTypeInterface.getCanonicalName() ) ) {
+        pluginTypeInterface = potentialPluginTypeInterface;
+      }
+    }
+    if ( pluginTypeInterface == null ) {
+      throw new KettlePluginException( "Class not found with name: " + className );
+    }
+    PluginInterface plugin = getPlugin( pluginTypeInterface, pluginId );
+    return getClass( plugin, className );
+  }
+
   /**
    * Load the class with a certain name using the class loader of certain plugin.
    *
