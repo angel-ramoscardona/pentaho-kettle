@@ -1897,9 +1897,11 @@ public class Spoon extends ApplicationWindow implements AddUndoPositionInterface
       // read from a repository...
       //
       try {
-        String connection = lastUsedFile.getConnection();
+        String connection = getLastUsedConnection( lastUsedFile );
         Variables variables = new Variables();
-        variables.setVariable( CONNECTION, connection );
+        if ( connection != null ) {
+          variables.setVariable( CONNECTION, connection );
+        }
         loadLastUsedFile( lastUsedFile, rep == null ? null : rep.getName() );
         addMenuLast();
       } catch ( KettleException ke ) {
@@ -4607,7 +4609,9 @@ public class Spoon extends ApplicationWindow implements AddUndoPositionInterface
     if ( rep != null && meta.getRepositoryDirectory() != null ) {
       fileDialogOperation.setPath( meta.getRepositoryDirectory().getPath() );
     } else {
-      fileDialogOperation.setPath( meta.getFilename().substring( 0, meta.getFilename().lastIndexOf( "/" ) ) );
+      if ( meta.getFilename() != null ) {
+        fileDialogOperation.setPath( meta.getFilename().substring( 0, meta.getFilename().lastIndexOf( "/" ) ) );
+      }
     }
     if ( meta instanceof VariableSpace ) {
       fileDialogOperation.setConnection( ( (VariableSpace) meta ).getVariable( CONNECTION ) );
@@ -4619,16 +4623,7 @@ public class Spoon extends ApplicationWindow implements AddUndoPositionInterface
       if ( meta instanceof VariableSpace && fileDialogOperation.getConnection() != null ) {
         ( (VariableSpace) meta ).setVariable( CONNECTION, fileDialogOperation.getConnection() );
       }
-      if ( fileDialogOperation.getPath() != null && fileDialogOperation.getFilename() != null ) {
-        String filename = fileDialogOperation.getPath() + "/" + fileDialogOperation.getFilename();
-        lastFileOpened = filename;
-        lastFileOpenedConnection = fileDialogOperation.getConnection();
-        lastFileOpenedProvider = fileDialogOperation.getProvider();
-        if ( lastFileOpenedConnection != null && meta instanceof VariableSpace ) {
-          ( (VariableSpace) meta ).setVariable( CONNECTION, lastFileOpenedConnection );
-        }
-        saved = saveXMLFile( meta, filename, false );
-      } else if ( fileDialogOperation.getRepositoryObject() != null ) {
+      if ( fileDialogOperation.getRepositoryObject() != null ) {
         RepositoryObject repositoryObject = (RepositoryObject) fileDialogOperation.getRepositoryObject();
         final RepositoryDirectoryInterface oldDir = meta.getRepositoryDirectory();
         final String oldName = meta.getName();
@@ -4640,6 +4635,15 @@ public class Spoon extends ApplicationWindow implements AddUndoPositionInterface
           meta.setRepositoryDirectory( oldDir );
           meta.setName( oldName );
         }
+      } else if ( fileDialogOperation.getPath() != null && fileDialogOperation.getFilename() != null ) {
+        String filename = fileDialogOperation.getPath() + "/" + fileDialogOperation.getFilename();
+        lastFileOpened = filename;
+        lastFileOpenedConnection = fileDialogOperation.getConnection();
+        lastFileOpenedProvider = fileDialogOperation.getProvider();
+        if ( lastFileOpenedConnection != null && meta instanceof VariableSpace ) {
+          ( (VariableSpace) meta ).setVariable( CONNECTION, lastFileOpenedConnection );
+        }
+        saved = saveXMLFile( meta, filename, false );
       }
     } catch ( KettleException e ) {
       return false;
@@ -4740,7 +4744,11 @@ public class Spoon extends ApplicationWindow implements AddUndoPositionInterface
       if ( listener != null ) {
         try {
           String connection = variableSpace != null ? variableSpace.getVariable( CONNECTION ) : null;
-          loaded = listener.open( root, filename, connection, importfile );
+          if ( listener instanceof ConnectionListener ) {
+            loaded = ( (ConnectionListener) listener ).open( root, filename, connection, importfile );
+          } else {
+            loaded = listener.open( root, filename, importfile );
+          }
         } catch ( KettleMissingPluginsException e ) {
           log.logError( e.getMessage(), e );
         }
@@ -6097,12 +6105,16 @@ public class Spoon extends ApplicationWindow implements AddUndoPositionInterface
     }
 
     FileListener listener = null;
-    // match by extension first
+    // match by extension first - this results into PDI-15323
+    // So to fix PDI-15323, we let the fileListener for the default extension for this meta
+    // handle the request, commenting out the code that finds the listener by extension type
+    /*
     int idx = filename.lastIndexOf( '.' );
     if ( idx != -1 ) {
       String extension = filename.substring( idx + 1 );
       listener = fileExtensionMap.get( extension );
     }
+    */
     if ( listener == null ) {
       String xt = meta.getDefaultExtension();
       listener = fileExtensionMap.get( xt );
@@ -6848,7 +6860,6 @@ public class Spoon extends ApplicationWindow implements AddUndoPositionInterface
         disableMenuItem( doc, "toolbar-file-save-as", disableTransMenu
           && disableJobMenu && disableMetaMenu || disableSave );
         disableMenuItem( doc, "file-save-as-vfs", disableTransMenu && disableJobMenu && disableMetaMenu );
-        disableMenuItem( doc, "file-save-as-new", disableTransMenu && disableJobMenu && disableMetaMenu );
         disableMenuItem( doc, "file-close", disableTransMenu && disableJobMenu && disableMetaMenu );
         disableMenuItem( doc, "file-print", disableTransMenu && disableJobMenu );
         disableMenuItem( doc, "file-export-to-xml", disableTransMenu && disableJobMenu );
@@ -8206,7 +8217,7 @@ public class Spoon extends ApplicationWindow implements AddUndoPositionInterface
 
     // open files stored locally, not in the repository
     if ( !lastUsedFile.isSourceRepository() && !Utils.isEmpty( lastUsedFile.getFilename() ) ) {
-      String connection = lastUsedFile.getConnection();
+      String connection = getLastUsedConnection( lastUsedFile );
       Variables variables = null;
       if ( connection != null ) {
         variables = new Variables();
@@ -8220,6 +8231,13 @@ public class Spoon extends ApplicationWindow implements AddUndoPositionInterface
       }
       refreshTree();
     }
+  }
+
+  private String getLastUsedConnection( LastUsedFile lastUsedFile ) {
+    if ( !Utils.isEmpty( lastUsedFile.getConnection() ) && !lastUsedFile.getConnection().equals( "null" ) ) {
+      return lastUsedFile.getConnection();
+    }
+    return null;
   }
 
   /**

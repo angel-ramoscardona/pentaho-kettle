@@ -46,7 +46,7 @@ import org.w3c.dom.Node;
 
 import java.util.Locale;
 
-public class TransFileListener implements FileListener {
+public class TransFileListener implements FileListener, ConnectionListener {
 
   private static Class<?> PKG = Spoon.class; // for i18n purposes, needed by Translator2!!
 
@@ -97,7 +97,9 @@ public class TransFileListener implements FileListener {
       transMeta.setRepositoryDirectory( spoon.getDefaultSaveLocation( transMeta ) );
       transMeta.setRepository( spoon.getRepository() );
       transMeta.setMetaStore( spoon.getMetaStore() );
-      transMeta.setVariable( Spoon.CONNECTION, connection );
+      if ( connection != null ) {
+        transMeta.setVariable( Spoon.CONNECTION, connection );
+      }
       spoon.setTransMetaVariables( transMeta );
       spoon.getProperties().addLastFile( LastUsedFile.FILE_TYPE_TRANSFORMATION, fname, null, false, null );
       spoon.addMenuLast();

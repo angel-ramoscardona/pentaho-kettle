@@ -127,6 +127,7 @@ public class CsvInputDialog extends BaseStepDialog implements StepDialogInterfac
   private Button wRunningInParallel;
   private Button wNewlinePossible;
   private ComboVar wEncoding;
+  private CCombo wFormat;
 
   private boolean gotEncodings = false;
 
@@ -486,6 +487,30 @@ public class CsvInputDialog extends BaseStepDialog implements StepDialogInterfac
     } );
     lastControl = wNewlinePossible;
 
+    // Format
+    Label wlFormat = new Label( shell, SWT.RIGHT );
+    wlFormat.setText( BaseMessages.getString( PKG, inputMeta.getDescription( "FORMAT" ) ) );
+    props.setLook( wlFormat );
+    FormData fdlFormat = new FormData();
+    fdlFormat.top = new FormAttachment( lastControl, margin );
+    fdlFormat.left = new FormAttachment( 0, 0 );
+    fdlFormat.right = new FormAttachment( middle, -margin );
+    wlFormat.setLayoutData( fdlFormat );
+    wFormat = new CCombo( shell, SWT.BORDER | SWT.READ_ONLY );
+    wFormat.setText( BaseMessages.getString( PKG, inputMeta.getDescription( "FORMAT" ) ) );
+    props.setLook( wFormat );
+    wFormat.add( "DOS" );
+    wFormat.add( "Unix" );
+    wFormat.add( "mixed" );
+    wFormat.select( 2 );
+    wFormat.addModifyListener( lsMod );
+    FormData fdFormat = new FormData();
+    fdFormat.top = new FormAttachment( lastControl, margin );
+    fdFormat.left = new FormAttachment( middle, 0 );
+    fdFormat.right = new FormAttachment( 100, 0 );
+    wFormat.setLayoutData( fdFormat );
+    lastControl = wFormat;
+
     // Encoding
     Label wlEncoding = new Label( shell, SWT.RIGHT );
     wlEncoding.setText( BaseMessages.getString( PKG, inputMeta.getDescription( "ENCODING" ) ) );
@@ -780,15 +805,16 @@ public class CsvInputDialog extends BaseStepDialog implements StepDialogInterfac
     wNewlinePossible.setSelection( inputMeta.isNewlinePossibleInFields() );
     wRowNumField.setText( Const.NVL( inputMeta.getRowNumField(), "" ) );
     wAddResult.setSelection( inputMeta.isAddResultFile() );
+    wFormat.setText( Const.NVL( inputMeta.getFileFormat(), "" ) );
     wEncoding.setText( Const.NVL( inputMeta.getEncoding(), "" ) );
 
-    final List<String> lowerCaseNewFieldNames = newFieldNames == null ? new ArrayList()
-      : newFieldNames.stream().map( String::toLowerCase ).collect( Collectors.toList() );
+    final List<String> fieldName = newFieldNames == null ? new ArrayList()
+      : newFieldNames.stream().map( String::toString ).collect( Collectors.toList() );
     for ( int i = 0; i < inputMeta.getInputFields().length; i++ ) {
       TextFileInputField field = inputMeta.getInputFields()[i];
       final TableItem item = getTableItem( field.getName() );
       // update the item only if we are reloading all fields, or the field is new
-      if ( !reloadAllFields && !lowerCaseNewFieldNames.contains( field.getName().toLowerCase() ) ) {
+      if ( !reloadAllFields && !fieldName.contains( field.getName() ) ) {
         continue;
       }
       int colnr = 1;
@@ -836,6 +862,7 @@ public class CsvInputDialog extends BaseStepDialog implements StepDialogInterfac
     inputMeta.setAddResultFile( wAddResult.getSelection() );
     inputMeta.setRunningInParallel( wRunningInParallel.getSelection() );
     inputMeta.setNewlinePossibleInFields( wNewlinePossible.getSelection() );
+    inputMeta.setFileFormat( wFormat.getText() );
     inputMeta.setEncoding( wEncoding.getText() );
 
     int nrNonEmptyFields = wFields.nrNonEmpty();
@@ -848,32 +875,20 @@ public class CsvInputDialog extends BaseStepDialog implements StepDialogInterfac
 
       int colnr = 1;
       inputMeta.getInputFields()[i].setName( item.getText( colnr++ ) );
-      inputMeta.getInputFields()[i].setType( ValueMetaFactory.getIdForValueMeta( trimFieldValue( item.getText( colnr++ ) ) ) );
-      inputMeta.getInputFields()[i].setFormat( trimFieldValue( item.getText( colnr++ ) ) );
-      inputMeta.getInputFields()[i].setLength( Const.toInt( trimFieldValue( item.getText( colnr++ ) ), -1 ) );
-      inputMeta.getInputFields()[i].setPrecision( Const.toInt( trimFieldValue( item.getText( colnr++ ) ), -1 ) );
-      inputMeta.getInputFields()[i].setCurrencySymbol( trimFieldValue( item.getText( colnr++ ) ) );
-      inputMeta.getInputFields()[i].setDecimalSymbol( trimFieldValue( item.getText( colnr++ ) ) );
-      inputMeta.getInputFields()[i].setGroupSymbol( trimFieldValue( item.getText( colnr++ ) ) );
-      inputMeta.getInputFields()[i].setTrimType( ValueMetaString.getTrimTypeByDesc( trimFieldValue( item.getText( colnr++ ) ) ) );
+      inputMeta.getInputFields()[i].setType( ValueMetaFactory.getIdForValueMeta( item.getText( colnr++ ) ) );
+      inputMeta.getInputFields()[i].setFormat( item.getText( colnr++ ) );
+      inputMeta.getInputFields()[i].setLength( Const.toInt( item.getText( colnr++ ), -1 ) );
+      inputMeta.getInputFields()[i].setPrecision( Const.toInt( item.getText( colnr++ ), -1 ) );
+      inputMeta.getInputFields()[i].setCurrencySymbol( item.getText( colnr++ ) );
+      inputMeta.getInputFields()[i].setDecimalSymbol( item.getText( colnr++ ) );
+      inputMeta.getInputFields()[i].setGroupSymbol( item.getText( colnr++ ) );
+      inputMeta.getInputFields()[i].setTrimType( ValueMetaString.getTrimTypeByDesc( item.getText( colnr++ ) ) );
     }
     wFields.removeEmptyRows();
     wFields.setRowNums();
     wFields.optWidth( true );
 
     inputMeta.setChanged();
-  }
-
-  /*
-   * We should make sure the values are Trimmed from the UI side. Ensuring that whatever the user puts into the
-   * table rows can actually be saved appropriately. There are some fields here that can be trimmed that cannot be
-   * trimmed from the XML side
-   */
-  private String trimFieldValue( String text ) {
-    if ( text != null && !text.isEmpty() ) {
-      text = text.trim();
-    }
-    return text;
   }
 
   private void ok() {

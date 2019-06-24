@@ -29,6 +29,7 @@ import org.pentaho.di.core.injection.Injection;
 import org.pentaho.di.core.injection.InjectionSupported;
 import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
+import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.core.row.value.ValueMetaBase;
 import org.pentaho.di.core.row.value.ValueMetaString;
 import org.pentaho.di.core.util.serialization.Sensitive;
@@ -52,6 +53,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import static java.util.stream.Collectors.toList;
+import static org.pentaho.di.core.row.ValueMetaInterface.TYPE_STRING;
 import static org.pentaho.di.core.util.serialization.ConfigHelper.conf;
 import static org.pentaho.di.i18n.BaseMessages.getString;
 import static org.pentaho.di.trans.step.mqtt.MQTTClientBuilder.DEFAULT_SSL_OPTS;
@@ -164,6 +166,9 @@ public class MQTTConsumerMeta extends BaseStreamStepMeta implements StepMetaInte
   @Injection ( name = AUTOMATIC_RECONNECT )
   private String automaticReconnect = "";
 
+  @Injection( name = MESSAGE_DATA_TYPE )
+  public String messageDataType;
+
   public MQTTConsumerMeta() {
     super();
     setSpecificationMethod( ObjectLocationSpecificationMethod.FILENAME );
@@ -191,6 +196,12 @@ public class MQTTConsumerMeta extends BaseStreamStepMeta implements StepMetaInte
     serverUris = "";
     mqttVersion = "";
     automaticReconnect = "";
+    messageDataType = ValueMetaInterface.getTypeDescription( TYPE_STRING );
+  }
+
+  @Override
+  public int getMessageDataType() {
+    return ValueMetaInterface.getTypeCode( messageDataType );
   }
 
   @Override public String getFileName() {
@@ -201,7 +212,7 @@ public class MQTTConsumerMeta extends BaseStreamStepMeta implements StepMetaInte
   @Override
   public RowMeta getRowMeta( String origin, VariableSpace space ) {
     RowMeta rowMeta = new RowMeta();
-    rowMeta.addValueMeta( new ValueMetaBase( msgOutputName, messageDataType ) );
+    rowMeta.addValueMeta( new ValueMetaBase( msgOutputName, getMessageDataType() ) );
     rowMeta.addValueMeta( new ValueMetaString( topicOutputName ) );
     return rowMeta;
   }

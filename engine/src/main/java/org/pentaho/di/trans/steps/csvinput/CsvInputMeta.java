@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2019 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -102,6 +102,8 @@ public class CsvInputMeta extends BaseStepMeta implements StepMetaInterface, Inp
 
   private boolean runningInParallel;
 
+  private String fileFormat;
+
   private String encoding;
 
   private boolean newlinePossibleInFields;
@@ -134,6 +136,7 @@ public class CsvInputMeta extends BaseStepMeta implements StepMetaInterface, Inp
     lazyConversionActive = true;
     isaddresult = false;
     bufferSize = "50000";
+    fileFormat = "mixed";
   }
 
   private void readData( Node stepnode ) throws KettleXMLException {
@@ -161,6 +164,7 @@ public class CsvInputMeta extends BaseStepMeta implements StepMetaInterface, Inp
       } else {
         newlinePossibleInFields = "Y".equalsIgnoreCase( nlp );
       }
+      fileFormat = XMLHandler.getTagValue( stepnode, getXmlCode( "FORMAT" ) );
       encoding = XMLHandler.getTagValue( stepnode, getXmlCode( "ENCODING" ) );
 
       Node fields = XMLHandler.getSubNode( stepnode, getXmlCode( "FIELDS" ) );
@@ -214,6 +218,7 @@ public class CsvInputMeta extends BaseStepMeta implements StepMetaInterface, Inp
     retval.append( "    " ).append( XMLHandler.addTagValue( getXmlCode( "PARALLEL" ), runningInParallel ) );
     retval.append( "    " ).append(
       XMLHandler.addTagValue( getXmlCode( "NEWLINE_POSSIBLE" ), newlinePossibleInFields ) );
+    retval.append( "    " ).append( XMLHandler.addTagValue( getXmlCode( "FORMAT" ), fileFormat ) );
     retval.append( "    " ).append( XMLHandler.addTagValue( getXmlCode( "ENCODING" ), encoding ) );
 
     retval.append( "    " ).append( XMLHandler.openTag( getXmlCode( "FIELDS" ) ) ).append( Const.CR );
@@ -262,6 +267,7 @@ public class CsvInputMeta extends BaseStepMeta implements StepMetaInterface, Inp
       runningInParallel = rep.getStepAttributeBoolean( id_step, getRepCode( "PARALLEL" ) );
       newlinePossibleInFields =
         rep.getStepAttributeBoolean( id_step, 0, getRepCode( "NEWLINE_POSSIBLE" ), !runningInParallel );
+      fileFormat = rep.getStepAttributeString( id_step, getRepCode( "FORMAT" ) );
       encoding = rep.getStepAttributeString( id_step, getRepCode( "ENCODING" ) );
 
       int nrfields = rep.countNrStepAttributes( id_step, getRepCode( "FIELD_NAME" ) );
@@ -307,6 +313,7 @@ public class CsvInputMeta extends BaseStepMeta implements StepMetaInterface, Inp
       rep
         .saveStepAttribute(
           id_transformation, id_step, getRepCode( "NEWLINE_POSSIBLE" ), newlinePossibleInFields );
+      rep.saveStepAttribute( id_transformation, id_step, getRepCode( "FORMAT" ), fileFormat );
       rep.saveStepAttribute( id_transformation, id_step, getRepCode( "ENCODING" ), encoding );
 
       for ( int i = 0; i < inputFields.length; i++ ) {
@@ -332,34 +339,9 @@ public class CsvInputMeta extends BaseStepMeta implements StepMetaInterface, Inp
     }
   }
 
-  /*
-   * We should make sure the values are Trimmed from the XML side. Most of the time, the user will make the adjustments
-   * in the UI and the UI side will trim automatically. However, for projects where people send the values in an XML
-   * file or they have a lot of transformations that need to be converted because the UI side wasn't trimming before,
-   * they need this method to help clean up their transformations and save the data correctly for future use. The UI
-   * captures and trims some fields that are initially strings before they become integers that the method here cannot
-   * trim. So we need both methods in both spots to ensure the fields are clean from both directions completely.
-   */
-  private String trimFieldValue( String text ) {
-    if ( text != null && !text.isEmpty() ) {
-      text = text.trim();
-    }
-    return text;
-  }
-
-  private void trimFields() {
-    for ( TextFileInputField field : inputFields ) {
-      field.setFormat( trimFieldValue( field.getFormat() ) );
-      field.setCurrencySymbol( trimFieldValue( field.getCurrencySymbol() ) );
-      field.setDecimalSymbol( trimFieldValue( field.getDecimalSymbol() ) );
-      field.setGroupSymbol( trimFieldValue( field.getGroupSymbol() ) );
-    }
-  }
-
   @Override
   public void getFields( RowMetaInterface rowMeta, String origin, RowMetaInterface[] info, StepMeta nextStep,
     VariableSpace space, Repository repository, IMetaStore metaStore ) throws KettleStepException {
-    trimFields();
     try {
       rowMeta.clear(); // Start with a clean slate, eats the input
 
@@ -370,6 +352,7 @@ public class CsvInputMeta extends BaseStepMeta implements StepMetaInterface, Inp
         valueMeta.setConversionMask( field.getFormat() );
         valueMeta.setLength( field.getLength() );
         valueMeta.setPrecision( field.getPrecision() );
+        valueMeta.setConversionMask( field.getFormat() );
         valueMeta.setDecimalSymbol( field.getDecimalSymbol() );
         valueMeta.setGroupingSymbol( field.getGroupSymbol() );
         valueMeta.setCurrencySymbol( field.getCurrencySymbol() );
@@ -586,7 +569,14 @@ public class CsvInputMeta extends BaseStepMeta implements StepMetaInterface, Inp
 
   @Override
   public int getFileFormatTypeNr() {
-    return TextFileInputMeta.FILE_FORMAT_MIXED; // TODO: check this
+
+    if ( getFileFormat().equalsIgnoreCase( "DOS" ) ) {
+      return TextFileInputMeta.FILE_FORMAT_DOS;
+    } else if ( getFileFormat().equalsIgnoreCase( "UNIX" ) ) {
+      return TextFileInputMeta.FILE_FORMAT_UNIX;
+    } else {
+      return TextFileInputMeta.FILE_FORMAT_MIXED;
+    }
   }
 
   @Override
@@ -730,6 +720,21 @@ public class CsvInputMeta extends BaseStepMeta implements StepMetaInterface, Inp
   }
 
   /**
+   * @return Returns the fileFormat
+   */
+  public String getFileFormat() {
+    return fileFormat;
+  }
+
+  /**
+   * @param fileFormat
+   *          the fileFormat to set
+   */
+  public void setFileFormat( String fileFormat ) {
+    this.fileFormat = fileFormat;
+  }
+
+  /**
    * @return the encoding
    */
   public String getEncoding() {
@@ -827,6 +832,8 @@ public class CsvInputMeta extends BaseStepMeta implements StepMetaInterface, Inp
           newlinePossibleInFields = (Boolean) entry.getValue();
         } else if ( attr.getKey().equals( "ADD_FILENAME_RESULT" ) ) {
           isaddresult = (Boolean) entry.getValue();
+        } else if ( attr.getKey().equals( "FORMAT" ) ) {
+          fileFormat = (String) entry.getValue();
         } else if ( attr.getKey().equals( "ENCODING" ) ) {
           encoding = (String) entry.getValue();
         } else {

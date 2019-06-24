@@ -48,6 +48,7 @@ import org.pentaho.di.core.database.GenericDatabaseMeta;
 import org.pentaho.di.core.database.MSSQLServerNativeDatabaseMeta;
 import org.pentaho.di.core.database.OracleDatabaseMeta;
 import org.pentaho.di.core.database.PartitionDatabaseMeta;
+import org.pentaho.di.core.database.RedshiftDatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.logging.LogChannel;
 import org.pentaho.di.core.plugins.DatabasePluginType;
@@ -74,9 +75,11 @@ import org.pentaho.ui.xul.containers.XulRoot;
 import org.pentaho.ui.xul.containers.XulTree;
 import org.pentaho.ui.xul.containers.XulTreeItem;
 import org.pentaho.ui.xul.containers.XulTreeRow;
+import org.pentaho.ui.xul.containers.XulVbox;
 import org.pentaho.ui.xul.containers.XulWindow;
 import org.pentaho.ui.xul.impl.AbstractXulEventHandler;
 
+import static org.pentaho.di.core.database.BaseDatabaseMeta.ATTRIBUTE_PREFIX_EXTRA_OPTION;
 import static org.pentaho.di.core.database.SnowflakeHVDatabaseMeta.WAREHOUSE;
 
 /**
@@ -97,6 +100,9 @@ public class DataHandler extends AbstractXulEventHandler {
   private static final String EXTRA_OPTION_WEB_APPLICATION_NAME = BaseDatabaseMeta.ATTRIBUTE_PREFIX_EXTRA_OPTION
     + "KettleThin.webappname";
   private static final String DEFAULT_WEB_APPLICATION_NAME = "pentaho";
+  private static final String SNOWFLAKE_TYPE = "SNOWFLAKEHV";
+  private static final String EXTRA_OPT_WAREHOUSE = ATTRIBUTE_PREFIX_EXTRA_OPTION + SNOWFLAKE_TYPE + "." + WAREHOUSE;
+
 
   private List<String> databaseDialects;
 
@@ -250,6 +256,11 @@ public class DataHandler extends AbstractXulEventHandler {
   private XulButton cancelButton;
   private XulButton testButton;
   private XulLabel noticeLabel;
+
+  private XulMenuList jdbcAuthMethod;
+  private XulTextbox iamAccessKeyId;
+  private XulTextbox iamSecretKeyId;
+  private XulTextbox iamSessionToken;
 
   public DataHandler() {
     databaseDialects = new ArrayList<String>();
@@ -732,6 +743,19 @@ public class DataHandler extends AbstractXulEventHandler {
       meta.setConnectSQL( sqlBox.getValue() );
     }
 
+    if ( jdbcAuthMethod != null ) {
+      meta.getAttributes().put( RedshiftDatabaseMeta.JDBC_AUTH_METHOD, jdbcAuthMethod.getValue() );
+    }
+    if ( iamAccessKeyId != null ) {
+      meta.getAttributes().put( RedshiftDatabaseMeta.IAM_ACCESS_KEY_ID, iamAccessKeyId.getValue() );
+    }
+    if ( iamSecretKeyId != null ) {
+      meta.getAttributes().put( RedshiftDatabaseMeta.IAM_SECRET_ACCESS_KEY, iamSecretKeyId.getValue() );
+    }
+    if ( iamSessionToken != null ) {
+      meta.getAttributes().put( RedshiftDatabaseMeta.IAM_SESSION_TOKEN, iamSessionToken.getValue() );
+    }
+
     // Cluster panel settings
     if ( clusteringCheck != null ) {
       meta.setPartitioned( clusteringCheck.isChecked() );
@@ -811,7 +835,7 @@ public class DataHandler extends AbstractXulEventHandler {
         meta.setConnectionPoolingProperties( properties );
       }
     }
-
+    specialSnowflakeGetHandling( meta );
   }
 
   private void setInfo( DatabaseMeta meta ) {
@@ -825,6 +849,7 @@ public class DataHandler extends AbstractXulEventHandler {
       meta.getAttributes().remove( EXTRA_OPTION_WEB_APPLICATION_NAME );
       meta.setChanged();
     }
+    specialSnowflakeSetHandling( meta );
 
     getControls();
 
@@ -907,6 +932,20 @@ public class DataHandler extends AbstractXulEventHandler {
       sqlBox.setValue( meta.getConnectSQL() == null ? "" : meta.getConnectSQL() );
     }
 
+    if ( jdbcAuthMethod != null ) {
+      jdbcAuthMethod.setValue( meta.getAttributes().getProperty( RedshiftDatabaseMeta.JDBC_AUTH_METHOD ) );
+      setAuthFieldsVisible();
+    }
+    if ( iamAccessKeyId != null ) {
+      iamAccessKeyId.setValue( meta.getAttributes().getProperty( RedshiftDatabaseMeta.IAM_ACCESS_KEY_ID ) );
+    }
+    if ( iamSecretKeyId != null ) {
+      iamSecretKeyId.setValue( meta.getAttributes().getProperty( RedshiftDatabaseMeta.IAM_SECRET_ACCESS_KEY ) );
+    }
+    if ( iamSessionToken != null ) {
+      iamSessionToken.setValue( meta.getAttributes().getProperty( RedshiftDatabaseMeta.IAM_SESSION_TOKEN ) );
+
+    }
     // Clustering panel settings
 
     if ( clusteringCheck != null ) {
@@ -938,6 +977,47 @@ public class DataHandler extends AbstractXulEventHandler {
     setDeckChildIndex();
     onPoolingCheck();
     onClusterCheck();
+  }
+
+  @SuppressWarnings ( "unused" )
+  public void setAuthFieldsVisible() {
+    jdbcAuthMethod = (XulMenuList) document.getElementById( "redshift-auth-method-list" );
+    XulVbox standardControls = (XulVbox) document.getElementById( "auth-standard-controls" );
+    XulVbox iamControls = (XulVbox) document.getElementById( "auth-iam-controls" );
+    boolean isStandardSelected = jdbcAuthMethod != null && "Standard".equals( jdbcAuthMethod.getValue() );
+    standardControls.setVisible( isStandardSelected );
+    iamControls.setVisible( !isStandardSelected );
+  }
+
+  /**
+   * Snowflake has a warehouse attr that needs to an "extra option" such
+   * that PRD will properly load and store the value (PRD has a different meta strategy).
+   * BUT, we don't want the warehouse option to show up in the options table,
+   * since it's on the main tab, so we remove the extra option on Set, and add it on Get.
+   * This is a workaround to existing limitations in PRD, which currently ignores all
+   * non-"extra" attributes.
+   */
+  private void specialSnowflakeSetHandling( DatabaseMeta meta ) {
+    if ( metaContainsExtraOptionForWarehouse( meta ) ) {
+      Properties attrs = databaseMeta.getAttributes();
+      String warehouse = (String) attrs.get( EXTRA_OPT_WAREHOUSE );
+      attrs.remove( EXTRA_OPT_WAREHOUSE );
+      attrs.put( WAREHOUSE, warehouse );
+    }
+  }
+
+  private void specialSnowflakeGetHandling( DatabaseMeta meta ) {
+    if ( meta == null || !SNOWFLAKE_TYPE.equals( meta.getPluginId() ) ) {
+      return;
+    }
+    Properties attrs = meta.getAttributes();
+    String warehouse = (String) attrs.get( WAREHOUSE );
+    attrs.put( EXTRA_OPT_WAREHOUSE, warehouse );
+  }
+
+  private boolean metaContainsExtraOptionForWarehouse( DatabaseMeta meta ) {
+    return databaseMeta != null
+      && databaseMeta.getAttributes().containsKey( EXTRA_OPT_WAREHOUSE );
   }
 
   private void traverseDomSetReadOnly( XulComponent component, boolean readonly ) {
@@ -1512,6 +1592,10 @@ public class DataHandler extends AbstractXulEventHandler {
     cancelButton = (XulButton) document.getElementById( "general-datasource-window_cancel" );
     testButton = (XulButton) document.getElementById( "test-button" );
     noticeLabel = (XulLabel) document.getElementById( "notice-label" );
+    jdbcAuthMethod = (XulMenuList) document.getElementById( "redshift-auth-method-list" );
+    iamAccessKeyId = (XulTextbox) document.getElementById( "iam-access-key-id" );
+    iamSecretKeyId = (XulTextbox) document.getElementById( "iam-secret-access-key" );
+    iamSessionToken = (XulTextbox) document.getElementById( "iam-session-token" );
 
     if ( portNumberBox != null && serverInstanceBox != null ) {
       if ( Boolean.parseBoolean( serverInstanceBox.getAttributeValue( "shouldDisablePortIfPopulated" ) ) ) {

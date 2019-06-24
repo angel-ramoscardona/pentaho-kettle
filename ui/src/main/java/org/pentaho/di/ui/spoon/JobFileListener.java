@@ -40,7 +40,7 @@ import org.w3c.dom.Node;
 import java.util.Date;
 import java.util.Locale;
 
-public class JobFileListener implements FileListener {
+public class JobFileListener implements FileListener, ConnectionListener {
 
   private static Class<?> PKG = Spoon.class; // for i18n purposes, needed by Translator2!!
 
@@ -65,7 +65,9 @@ public class JobFileListener implements FileListener {
       jobMeta.setRepositoryDirectory( spoon.getDefaultSaveLocation( jobMeta ) );
       jobMeta.setRepository( spoon.getRepository() );
       jobMeta.setMetaStore( spoon.getMetaStore() );
-      jobMeta.setVariable( Spoon.CONNECTION, connection );
+      if ( connection != null ) {
+        jobMeta.setVariable( Spoon.CONNECTION, connection );
+      }
       spoon.setJobMetaVariables( jobMeta );
       spoon.getProperties()
         .addLastFile( LastUsedFile.FILE_TYPE_JOB, fname, null, false, null, null, new Date(), connection );

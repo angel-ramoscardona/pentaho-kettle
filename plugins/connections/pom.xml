@@ -28,7 +28,7 @@
     <js.project.list>requirejs,requirejs-text,angular,require-css,angular-i18n</js.project.list>
     <angular.version>1.5.8</angular.version>
     <angular-animate.version>${angular.version}</angular-animate.version>
-    <pentaho-osgi-bundles.version>${project.version}</pentaho-osgi-bundles.version>
+    <pentaho-osgi-bundles.version>9.0.0.0-SNAPSHOT</pentaho-osgi-bundles.version>
     <angular-ui-router.version>0.4.2</angular-ui-router.version>
     <pdi.version>9.0.0.0-SNAPSHOT</pdi.version>
     <cxf.karaf.version>3.0.13</cxf.karaf.version>
