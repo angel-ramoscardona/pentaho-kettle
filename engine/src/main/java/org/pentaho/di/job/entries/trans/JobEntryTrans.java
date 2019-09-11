@@ -1257,7 +1257,9 @@ public class JobEntryTrans extends JobEntryBase implements Cloneable, JobEntryIn
     Result newResult = trans.getResult();
     result.clear(); // clear only the numbers, NOT the files or rows.
     result.add( newResult );
-    result.setRows( newResult.getRows() );
+    if ( !Utils.isEmpty( newResult.getRows() ) || trans.isResultRowsSet() ) {
+      result.setRows( newResult.getRows() );
+    }
   }
 
   /**
@@ -1693,7 +1695,10 @@ public class JobEntryTrans extends JobEntryBase implements Cloneable, JobEntryIn
       // Set fieldNameParameter only if exists and if it is not declared any staticValue( parameterValues array )
       //
       String thisValue = namedParam.getParameterValue( parameters[ idx ] );
-      // Set value only if is not empty at namedParam and exists in parameterFieldNames
+      // Default Case - init with null: for blanks ( Strings ) or nulls ( other types ) cases to reset/clean previous
+      // values of the same parameter
+      jobEntryTrans.setVariable( parameters[ idx ], null );
+      // Then set value only if is not empty at namedParam and exists in parameterFieldNames
       if ( !Utils.isEmpty( thisValue ) && idx < parameterFieldNames.length ) {
         // If exists then ask if is not empty
         if ( !Utils.isEmpty( Const.trim( parameterFieldNames[ idx ] ) ) ) {

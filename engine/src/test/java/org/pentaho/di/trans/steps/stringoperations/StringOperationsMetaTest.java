@@ -75,19 +75,19 @@ public class StringOperationsMetaTest implements InitializerInterface<StepMetaIn
     attrValidatorMap.put( "fieldInStream", stringArrayLoadSaveValidator );
     attrValidatorMap.put( "fieldOutStream", stringArrayLoadSaveValidator );
     attrValidatorMap.put( "trimType",
-        new ArrayLoadSaveValidator<String>( new StringLoadSaveValidator(), 5 ) );
+      new ArrayLoadSaveValidator<String>( new StringLoadSaveValidator(), 5 ) );
     attrValidatorMap.put( "lowerUpper",
-        new ArrayLoadSaveValidator<String>( new StringLoadSaveValidator(), 5 ) );
+      new ArrayLoadSaveValidator<String>( new StringLoadSaveValidator(), 5 ) );
     attrValidatorMap.put( "initCap",
-        new ArrayLoadSaveValidator<String>( new StringLoadSaveValidator(), 5 ) );
+      new ArrayLoadSaveValidator<String>( new StringLoadSaveValidator(), 5 ) );
     attrValidatorMap.put( "maskXML",
-        new ArrayLoadSaveValidator<String>( new StringLoadSaveValidator(), 5 ) );
+      new ArrayLoadSaveValidator<String>( new StringLoadSaveValidator(), 5 ) );
     attrValidatorMap.put( "digits",
-        new ArrayLoadSaveValidator<String>( new StringLoadSaveValidator(), 5 ) );
+      new ArrayLoadSaveValidator<String>( new StringLoadSaveValidator(), 5 ) );
     attrValidatorMap.put( "removeSpecialCharacters",
-        new ArrayLoadSaveValidator<String>( new StringLoadSaveValidator(), 5 ) );
+      new ArrayLoadSaveValidator<String>( new StringLoadSaveValidator(), 5 ) );
     attrValidatorMap.put( "paddingType",
-        new ArrayLoadSaveValidator<String>( new StringLoadSaveValidator(), 5 ) );
+      new ArrayLoadSaveValidator<String>( new StringLoadSaveValidator(), 5 ) );
 
     Map<String, FieldLoadSaveValidator<?>> typeValidatorMap = new HashMap<String, FieldLoadSaveValidator<?>>();
 

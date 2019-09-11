@@ -48,6 +48,8 @@ public interface FileProvider<T extends File> {
 
   T add( T folder ) throws FileException;
 
+  T getFile( T file );
+
   boolean fileExists( T dir, String path ) throws FileException;
 
   String getNewName( T destDir, String newPath ) throws FileException;
@@ -67,4 +69,6 @@ public interface FileProvider<T extends File> {
   T writeFile( InputStream inputStream, T destDir, String path, boolean overwrite ) throws FileException;
 
   T getParent( T file );
+
+  void clearProviderCache();
 }

@@ -71,7 +71,17 @@ public class FileBrowserEndpoint {
                             @QueryParam( "useCache" ) Boolean useCache,
                             File file ) {
     useCache = useCache != null ? useCache : true;
+    if ( !useCache ) {
+      fileController.clearCache( file );
+    }
     return Response.ok( fileController.getFiles( file, filters, useCache ) ).build();
+  }
+
+  @POST
+  @Path( "/getFile" )
+  @Produces( { MediaType.APPLICATION_JSON } )
+  public Response getFile( File file ) {
+    return Response.ok( fileController.getFile( file ) ).build();
   }
 
   @POST

@@ -24,7 +24,6 @@ package org.pentaho.di.plugins.fileopensave.providers;
 
 import org.pentaho.di.plugins.fileopensave.api.providers.BaseFileProvider;
 import org.pentaho.di.plugins.fileopensave.api.providers.File;
-import org.pentaho.di.plugins.fileopensave.api.providers.FileProvider;
 import org.pentaho.di.plugins.fileopensave.api.providers.Tree;
 import org.pentaho.di.plugins.fileopensave.api.providers.exception.FileException;
 import org.pentaho.di.plugins.fileopensave.providers.model.TestDirectory;
@@ -239,5 +238,13 @@ public class TestFileProvider extends BaseFileProvider<TestFile> {
     fileSystem.put( "/directory4", files5 );
 
     return fileSystem;
+  }
+
+  public void clearProviderCache() {
+    //Any local caches that this provider might use should be cleared here.
+  }
+
+  @Override public TestFile getFile( TestFile file ) {
+    return null;
   }
 }

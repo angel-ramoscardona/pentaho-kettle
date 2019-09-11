@@ -52,7 +52,14 @@ public class FileController {
   }
 
   public boolean clearCache( File file ) {
-    return fileCache.clear( file );
+    boolean isCleared = fileCache.clear( file );
+    try {
+      FileProvider<File> fileProvider = getFileProvider( file.getProvider() );
+      fileProvider.clearProviderCache();
+    } catch (  InvalidFileProviderException e ) {
+      return isCleared;
+    }
+    return isCleared;
   }
 
   public FileProvider getFileProvider( String provider ) throws InvalidFileProviderException {
@@ -165,6 +172,15 @@ public class FileController {
       return Result.error( "Unable to move file", file );
     }
     return Result.error( "Unable to move file", file );
+  }
+
+  public File getFile( File file ) {
+    try {
+      FileProvider<File> fileProvider = getFileProvider( file.getProvider() );
+      return fileProvider.getFile( file );
+    } catch ( InvalidFileProviderException e ) {
+      return null;
+    }
   }
 
   public Result copyFile( File file, File destDir, String path, Boolean overwrite ) {
