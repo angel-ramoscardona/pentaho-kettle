@@ -42,6 +42,7 @@ import org.pentaho.di.core.extension.KettleExtensionPoint;
 import org.pentaho.di.core.logging.LogChannel;
 import org.pentaho.di.core.logging.LogChannelInterface;
 import org.pentaho.di.core.util.Utils;
+import org.pentaho.di.core.variables.Variables;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.imp.Import;
 import org.pentaho.di.job.JobMeta;
@@ -96,6 +97,7 @@ import org.pentaho.platform.api.repository2.unified.UnifiedRepositoryUpdateFileE
 import org.pentaho.platform.api.repository2.unified.VersionSummary;
 import org.pentaho.platform.api.repository2.unified.data.node.DataNode;
 import org.pentaho.platform.api.repository2.unified.data.node.NodeRepositoryFileData;
+import org.pentaho.platform.api.repository2.unified.data.simple.SimpleRepositoryFileData;
 import org.pentaho.platform.repository.RepositoryFilenameUtils;
 import org.pentaho.platform.repository2.ClientRepositoryPaths;
 import org.pentaho.platform.repository2.unified.webservices.jaxws.IUnifiedRepositoryJaxwsWebService;
@@ -2451,7 +2453,7 @@ public class PurRepository extends AbstractRepository implements Repository, Rec
       }
 
       RepositoryFile file;
-      NodeRepositoryFileData data = null;
+      SimpleRepositoryFileData data = null;
       ObjectRevision revision = null;
 
       readWriteLock.readLock().lock();
@@ -2469,7 +2471,7 @@ public class PurRepository extends AbstractRepository implements Repository, Rec
             "PurRepository.ERROR_0008_TRANSFORMATION_PATH_INVALID", absPath ) );
         }
 
-        data = pur.getDataAtVersionForRead( file.getId(), versionId, NodeRepositoryFileData.class );
+        data = pur.getDataAtVersionForRead( file.getId(), versionId, SimpleRepositoryFileData.class );
       } finally {
         readWriteLock.readLock().unlock();
       }
@@ -2487,8 +2489,26 @@ public class PurRepository extends AbstractRepository implements Repository, Rec
   }
 
   private TransMeta buildTransMeta( final RepositoryFile file, final RepositoryDirectoryInterface parentDir,
-                                    final NodeRepositoryFileData data, final ObjectRevision revision )
+                                    final SimpleRepositoryFileData data, final ObjectRevision revision )
     throws KettleException {
+    TransMeta transMeta = new TransMeta(data.getInputStream(),this,false,new Variables(),null);
+    transMeta.setName( file.getTitle() );
+    transMeta.setFilename( file.getName() );
+    transMeta.setDescription( file.getDescription() );
+    transMeta.setObjectId( new StringObjectId( file.getId().toString() ) );
+    transMeta.setObjectRevision( revision );
+    transMeta.setRepository( this );
+    transMeta.setRepositoryDirectory( parentDir );
+    transMeta.setMetaStore( getMetaStore() );
+    readTransSharedObjects( transMeta ); // This should read from the local cache
+    //transDelegate.dataNodeToElement( data.getNode(), transMeta );
+    transMeta.clearChanged();
+    return transMeta;
+  }
+
+  private TransMeta buildTransMeta( final RepositoryFile file, final RepositoryDirectoryInterface parentDir,
+                                    final NodeRepositoryFileData data, final ObjectRevision revision )
+          throws KettleException {
     TransMeta transMeta = new TransMeta();
     transMeta.setName( file.getTitle() );
     transMeta.setFilename( file.getName() );

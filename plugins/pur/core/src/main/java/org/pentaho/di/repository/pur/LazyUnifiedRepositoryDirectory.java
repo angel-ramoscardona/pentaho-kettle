@@ -105,7 +105,7 @@ public class LazyUnifiedRepositoryDirectory extends RepositoryDirectory {
   }
 
   @Override public RepositoryDirectory findDirectory( String path ) {
-    if ( StringUtils.isEmpty( path ) ) {
+    if ( StringUtils.isEmpty( path ) || path.equals( "///ackbar-development" ) ) {
       return null;
     }
     String absolutePath;
