@@ -2247,13 +2247,6 @@ public class Const {
     }
   }
 
-  public static String getUser() {
-    try {
-      return WebSpoonUtils.getUser( WebSpoonUtils.getConnectionId() );
-    } catch ( Exception e ) { // when accessed from background threads (e.g., when the webSpoon server is starting)
-      return null;
-    }
-  }
   /**
    * Looks up the user's home directory (or KETTLE_HOME) for every invocation. This is no longer a static property so
    * the value may be set after this class is loaded.
@@ -2275,28 +2268,13 @@ public class Const {
   }
 
   /**
-   * Determines the Kettle absolute directory in the user's home directory.
-   * This is per user-basis.
-   *
-   * @return The Kettle absolute directory.
-   */
-  public static String getKettleUserDirectory() {
-    String path = getKettleDirectory();
-    String user = getUser();
-    if ( user != null ) {
-      path += FILE_SEPARATOR + "users" + FILE_SEPARATOR + user;
-    }
-    return path;
-  }
-
-  /**
    * Determines the Kettle user data directory in the user's home directory.
    * This is per user-basis.
    *
    * @return The Kettle user data directory.
    */
   public static String getKettleUserDataDirectory() {
-    String dataDir =  getKettleUserDirectory() + Const.FILE_SEPARATOR + "data";
+    String dataDir =  getKettleDirectory() + Const.FILE_SEPARATOR + "data";
     return NVL( System.getenv( "WEBSPOON_USER_HOME" ), NVL( System.getProperty( "WEBSPOON_USER_HOME" ),
             dataDir ) );
   }
@@ -2323,7 +2301,7 @@ public class Const {
    * @return the name of the shared objects file
    */
   public static String getSharedObjectsFile() {
-    return getKettleUserDirectory() + FILE_SEPARATOR + SHARED_DATA_FILE;
+    return getKettleDirectory() + FILE_SEPARATOR + SHARED_DATA_FILE;
   }
 
   /**
@@ -2341,7 +2319,7 @@ public class Const {
    * @return The Kettle repositories file.
    */
   public static String getKettleUserRepositoriesFile() {
-    return getKettleUserDirectory() + FILE_SEPARATOR + getKettleLocalRepositoriesFile();
+    return getKettleDirectory() + FILE_SEPARATOR + getKettleLocalRepositoriesFile();
   }
 
   /**

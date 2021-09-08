@@ -121,10 +121,4 @@ public class WebSpoonUtils {
     return ( (UISessionImpl) getUISession() ).getConnectionId();
   }
 
-  /*
-   * Return true if user-auth is enabled.
-   */
-  public static boolean isMultiUser() {
-    return Const.getUser() == null ? false : true;
-  }
 }

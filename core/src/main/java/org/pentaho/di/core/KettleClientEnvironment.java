@@ -157,7 +157,7 @@ public class KettleClientEnvironment {
 
     // Try to create the directory...
     //
-    String directory = Const.getKettleUserDirectory();
+    String directory = Const.getKettleDirectory();
     File dir = new File( directory );
     try {
       dir.mkdirs();
