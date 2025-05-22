@@ -661,6 +661,11 @@ public abstract class BasePluginType implements PluginTypeInterface {
     KettleURLClassLoader urlClassLoader, URL jarFileUrl, List<URL> urls, ClassLoader classLoader ) {
     try {
       String pluginRootFolderName = new File( URLDecoder.decode( jarFileUrl.getFile(), "UTF-8" ) ).getParent();
+      if ( pluginRootFolderName.contains("pentaho-big-data-plugin") ) {
+        System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&");
+        System.out.println("Processing plugin directory:");
+        System.out.println(pluginRootFolderName);
+      }
       File pluginRootFolder = new File( pluginRootFolderName );
       if( pluginRootFolder.exists() ) {
         File classPathFile = new File( pluginRootFolder, "classpath.properties" );
@@ -676,6 +681,12 @@ public abstract class BasePluginType implements PluginTypeInterface {
               PluginFolder pluginFolder = new PluginFolder(
                 sourceDirectoryFile.getCanonicalPath(), false, true, searchLibDir );
               FileObject[] libFiles = pluginFolder.findJarFiles( true );
+              if ( pluginRootFolderName.contains("pentaho-big-data-plugin") ) {
+                System.out.println( "Directory processed: " + sourceDirectory );
+                System.out.println( "URLs sent to method: " + urls.size() );
+                System.out.println("Jars found: " + libFiles.length);
+                System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&");
+              }
               for ( FileObject libFile : libFiles ) {
                 urls.add( libFile.getURL() );
               }
@@ -732,6 +743,11 @@ public abstract class BasePluginType implements PluginTypeInterface {
     List<JarFileAnnotationPlugin> jarFilePlugins = findAnnotatedClassFiles( pluginClass.getName() );
     for ( JarFileAnnotationPlugin jarFilePlugin : jarFilePlugins ) {
 
+      if ( jarFilePlugin.getJarFile().toString().contains("pentaho-big-data")) {
+        System.out.println("----------------------------------------------");
+        System.out.println("Registering plugin jar file: " + jarFilePlugin.getJarFile());
+        System.out.println("----------------------------------------------");
+      }
       URLClassLoader urlClassLoader =
         createUrlClassLoader( jarFilePlugin.getJarFile(), getClass().getClassLoader() );
 
